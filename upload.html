@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="violet">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CostWarden — Załaduj dane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0A0910; --surface:#14121D; --surface-2:#1B1927; --surface-3:#201D2E;
+    --ink:#F3F1FA; --ink-2:#CFCBDE; --muted:#9A96AE;
+    --line:rgba(255,255,255,.09); --line-soft:rgba(255,255,255,.05);
+    --violet:#8B6DFF; --teal:#2FD9C4; --amber:#F5B942; --leak:#FF6E5A;
+    --leak-soft:rgba(255,110,90,.14); --amber-soft:rgba(245,185,66,.14);
+    --teal-soft:rgba(47,217,196,.14); --violet-soft:rgba(139,109,255,.14);
+    --grad:linear-gradient(115deg,#8B6DFF 0%,#2FD9C4 100%);
+    --shadow-soft:0 16px 40px -24px rgba(0,0,0,.7);
+    --ff-display:'Plus Jakarta Sans',system-ui,sans-serif;
+    --ff-body:'Inter',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--ff-body);font-weight:450;line-height:1.55;-webkit-font-smoothing:antialiased}
+  ::selection{background:var(--violet);color:#fff}
+  a{color:inherit}
+  button{font-family:inherit;cursor:pointer}
+  .num{font-variant-numeric:tabular-nums}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:6px}
+
+  .shell{max-width:900px;margin:0 auto;padding:40px 24px 100px}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:34px}
+  .brand .mark{width:32px;height:32px}
+  .brand .wm{font-family:var(--ff-display);font-weight:700;font-size:17px;letter-spacing:-.02em}
+  .brand .org{margin-left:auto;font-size:13px;color:var(--muted)}
+
+  /* ---- stepper ---- */
+  .stepper{display:flex;align-items:center;gap:0;margin-bottom:36px}
+  .step-item{display:flex;align-items:center;gap:10px;flex:1}
+  .step-item:last-child{flex:0}
+  .step-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--ff-display);font-weight:700;font-size:12.5px;flex-shrink:0;
+    background:var(--surface-2);border:1px solid var(--line);color:var(--muted);transition:all .25s}
+  .step-label{font-family:var(--ff-display);font-weight:600;font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .step-line{flex:1;height:1px;background:var(--line);margin:0 10px}
+  .step-item.done .step-dot{background:var(--teal-soft);border-color:var(--teal);color:var(--teal)}
+  .step-item.done .step-label{color:var(--ink-2)}
+  .step-item.current .step-dot{background:var(--grad);border-color:transparent;color:#0A0910}
+  .step-item.current .step-label{color:var(--ink)}
+  @media(max-width:640px){.step-label{display:none}.stepper{gap:4px}}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:30px;box-shadow:var(--shadow-soft);
+    opacity:0;transform:translateY(8px);animation:panelIn .4s ease forwards}
+  @keyframes panelIn{to{opacity:1;transform:none}}
+  .panel h1{font-family:var(--ff-display);font-weight:800;font-size:22px;letter-spacing:-.02em;margin-bottom:6px}
+  .panel .sub{font-size:14px;color:var(--muted);margin-bottom:26px;max-width:52em}
+
+  .btn{font-family:var(--ff-display);font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:7px;
+    border:none;border-radius:10px;padding:11px 20px;transition:transform .15s,filter .2s,background .15s,border-color .15s;white-space:nowrap}
+  .btn-grad{background:var(--grad);color:#0A0910}
+  .btn-grad:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+  .btn-grad:disabled{opacity:.4;cursor:not-allowed}
+  .btn-soft{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+  .btn-soft:hover{border-color:var(--teal)}
+  .btn-row{display:flex;justify-content:space-between;align-items:center;margin-top:28px;gap:12px}
+
+  /* ---- step 1: upload ---- */
+  .dropzone{border:1.5px dashed var(--line);border-radius:18px;padding:48px 24px;text-align:center;
+    background:var(--surface-2);transition:border-color .2s,background .2s;cursor:pointer}
+  .dropzone.drag{border-color:var(--teal);background:var(--teal-soft)}
+  .dropzone .dz-ico{width:52px;height:52px;border-radius:14px;background:var(--violet-soft);display:flex;
+    align-items:center;justify-content:center;margin:0 auto 16px}
+  .dropzone .dz-ico svg{width:24px;height:24px;stroke:var(--teal)}
+  .dropzone .dz-t{font-family:var(--ff-display);font-weight:700;font-size:15px}
+  .dropzone .dz-d{font-size:13px;color:var(--muted);margin-top:6px}
+  .dropzone input{display:none}
+  .req-cols{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .req-chip{font-size:12px;font-weight:600;font-family:var(--ff-display);padding:5px 11px;border-radius:100px;
+    background:var(--surface-3);border:1px solid var(--line);color:var(--ink-2)}
+  .req-chip.req{border-color:rgba(255,110,90,.35);color:#FF9384}
+  .tmpl-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--teal);margin-top:18px;font-weight:600}
+  .tmpl-link svg{width:14px;height:14px;stroke:var(--teal)}
+
+  .file-card{display:flex;align-items:center;gap:14px;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px}
+  .file-card .f-ico{width:38px;height:38px;border-radius:10px;background:var(--teal-soft);display:flex;
+    align-items:center;justify-content:center;flex-shrink:0}
+  .file-card .f-ico svg{width:18px;height:18px;stroke:var(--teal)}
+  .file-card .f-name{font-family:var(--ff-display);font-weight:700;font-size:14px}
+  .file-card .f-meta{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .file-card .f-remove{margin-left:auto;background:none;border:none;color:var(--muted);font-size:12.5px;font-weight:600;font-family:var(--ff-display)}
+  .file-card .f-remove:hover{color:var(--leak)}
+
+  .preview-wrap{margin-top:20px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .preview-scroll{overflow-x:auto;max-height:260px}
+  table.preview{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.preview th{text-align:left;background:var(--surface-3);padding:10px 14px;font-family:var(--ff-display);
+    font-weight:600;color:var(--ink-2);white-space:nowrap;position:sticky;top:0}
+  table.preview td{padding:9px 14px;border-top:1px solid var(--line-soft);color:var(--ink-2);white-space:nowrap}
+  .preview-note{padding:10px 14px;font-size:12px;color:var(--muted);background:var(--surface-2)}
+
+  /* ---- step 2: mapping ---- */
+  .map-progress{display:flex;align-items:center;gap:10px;margin-bottom:22px;font-size:13px;color:var(--muted)}
+  .map-progress .bar{flex:1;height:6px;border-radius:100px;background:var(--surface-3);overflow:hidden}
+  .map-progress .bar-fill{height:100%;background:var(--grad);border-radius:100px;transition:width .3s ease}
+  .map-row{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:16px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line-soft)}
+  .map-row:last-child{border-bottom:none}
+  .map-src .ms-name{font-family:var(--ff-display);font-weight:700;font-size:13.5px}
+  .map-src .ms-sample{font-size:12px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .map-arrow{display:flex;justify-content:center;color:var(--muted)}
+  .map-arrow svg{width:16px;height:16px;stroke:currentColor}
+  select.map-select{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+    color:var(--ink);padding:10px 12px;font-family:var(--ff-body);font-size:13.5px;outline:none}
+  select.map-select:focus{border-color:var(--teal)}
+  select.map-select.mapped{border-color:rgba(47,217,196,.4)}
+  select.map-select.required-missing{border-color:rgba(255,110,90,.4)}
+  @media(max-width:680px){.map-row{grid-template-columns:1fr;gap:6px}.map-arrow{display:none}}
+
+  /* ---- step 3: validation ---- */
+  .val-summary{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+  .val-card{background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:20px}
+  .val-card.ok{border-color:rgba(47,217,196,.35)}
+  .val-card.warn{border-color:rgba(255,110,90,.35)}
+  .val-card .vc-val{font-family:var(--ff-display);font-weight:800;font-size:26px}
+  .val-card.ok .vc-val{color:var(--teal)}
+  .val-card.warn .vc-val{color:var(--leak)}
+  .val-card .vc-lbl{font-size:12.5px;color:var(--muted);margin-top:4px}
+  @media(max-width:600px){.val-summary{grid-template-columns:1fr}}
+
+  .err-list{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+  .err-item{display:flex;align-items:center;gap:12px;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:12px;padding:12px 16px}
+  .err-item .ei-ico{width:30px;height:30px;border-radius:8px;background:var(--leak-soft);display:flex;
+    align-items:center;justify-content:center;flex-shrink:0}
+  .err-item .ei-ico svg{width:15px;height:15px;stroke:var(--leak)}
+  .err-item .ei-t{font-family:var(--ff-display);font-weight:700;font-size:13.5px}
+  .err-item .ei-d{font-size:12.5px;color:var(--muted)}
+  .err-item .ei-count{margin-left:auto;font-family:var(--ff-display);font-weight:800;font-size:15px;color:var(--leak)}
+
+  .banner{display:flex;gap:12px;align-items:flex-start;border-radius:14px;padding:14px 16px;margin-top:18px;font-size:13px}
+  .banner.warn{background:var(--amber-soft);border:1px solid rgba(245,185,66,.3);color:#F5C971}
+  .banner svg{width:16px;height:16px;stroke:currentColor;flex-shrink:0;margin-top:1px}
+
+  /* ---- step 4: analysis ---- */
+  .analyzing{text-align:center;padding:40px 20px}
+  .an-ring{width:88px;height:88px;margin:0 auto 26px;position:relative}
+  .an-ring svg{width:100%;height:100%;animation:spin 1.4s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .an-msg{font-family:var(--ff-display);font-weight:700;font-size:15px;min-height:22px;transition:opacity .3s}
+  .an-sub{font-size:13px;color:var(--muted);margin-top:6px}
+
+  /* ---- step 5: done ---- */
+  .done-hero{text-align:center;padding:20px 20px 8px}
+  .done-ico{width:64px;height:64px;border-radius:18px;background:var(--grad);display:flex;align-items:center;
+    justify-content:center;margin:0 auto 20px}
+  .done-ico svg{width:30px;height:30px;stroke:#0A0910;stroke-width:2.4}
+  .done-hero h1{font-size:22px}
+  .done-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:26px 0}
+  .done-kpi{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center}
+  .done-kpi .dk-val{font-family:var(--ff-display);font-weight:800;font-size:22px}
+  .done-kpi .dk-lbl{font-size:12px;color:var(--muted);margin-top:4px}
+  @media(max-width:600px){.done-kpis{grid-template-columns:1fr}}
+
+  .view{display:none}
+  .view.active{display:block}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="cw-mark" viewBox="0 0 44 44">
+    <defs><linearGradient id="cwg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B6DFF"/><stop offset="1" stop-color="#2FD9C4"/></linearGradient></defs>
+    <rect x="1" y="1" width="42" height="42" rx="13" fill="url(#cwg)"/>
+    <circle cx="19.5" cy="19.5" r="8.5" fill="none" stroke="#fff" stroke-width="3"/>
+    <path d="M26 26l6 6" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M16 21l2.5-3 2.5 2 3-4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<div class="shell">
+  <div class="brand">
+    <svg class="mark"><use href="#cw-mark"/></svg>
+    <span class="wm">CostWarden</span>
+    <span class="org">Meridian Hospitality Group</span>
+  </div>
+
+  <div class="stepper" id="stepper"></div>
+
+  <!-- ===================== STEP 1 — UPLOAD ===================== -->
+  <section class="view active" id="view-upload">
+    <div class="panel">
+      <h1>Załaduj dane</h1>
+      <p class="sub">Wgraj plik z fakturami lub zestawieniem kosztów w formacie CSV lub XLSX. Nie musisz nic czyścić — dopasujemy kolumny w następnym kroku.</p>
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Wgraj plik">
+        <div class="dz-ico"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7 9m5-5l5 5M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg></div>
+        <div class="dz-t">Przeciągnij plik tutaj albo kliknij, aby wybrać</div>
+        <div class="dz-d">CSV lub XLSX, do 20 MB</div>
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+      </div>
+
+      <div class="req-cols" id="reqCols"></div>
+      <a href="#" class="tmpl-link" id="downloadTemplate">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15V3m0 12l-4-4m4 4l4-4M4 17v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+        Pobierz przykładowy szablon CSV
+      </a>
+
+      <div id="fileCardWrap" style="margin-top:20px;display:none">
+        <div class="file-card">
+          <div class="f-ico"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3h8l4 4v14H7z"/><path stroke-linecap="round" d="M9 12h6M9 16h6"/></svg></div>
+          <div><div class="f-name" id="fName">—</div><div class="f-meta" id="fMeta">—</div></div>
+          <button class="f-remove" id="fRemove">Usuń</button>
+        </div>
+        <div class="preview-wrap">
+          <div class="preview-scroll"><table class="preview" id="previewTable"></table></div>
+          <div class="preview-note" id="previewNote"></div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <span style="font-size:12.5px;color:var(--muted)">Krok 1 z 5</span>
+        <button class="btn btn-grad" id="toMapping" disabled>Dalej: zmapuj kolumny</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 2 — MAPPING ===================== -->
+  <section class="view" id="view-mapping">
+    <div class="panel">
+      <h1>Zmapuj kolumny</h1>
+      <p class="sub">Rozpoznaliśmy część kolumn automatycznie. Sprawdź i popraw dopasowanie tam, gdzie to potrzebne — wymagane pola są oznaczone.</p>
+
+      <div class="map-progress">
+        <span id="mapProgressLabel">0 / 0 pól wymaganych zmapowanych</span>
+        <div class="bar"><div class="bar-fill" id="mapProgressBar" style="width:0%"></div></div>
+      </div>
+
+      <div id="mapRows"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-soft" id="backToUpload">Wstecz</button>
+        <button class="btn btn-grad" id="toValidation" disabled>Waliduj dane</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 3 — VALIDATION ===================== -->
+  <section class="view" id="view-validation">
+    <div class="panel">
+      <h1>Walidacja danych</h1>
+      <p class="sub">Sprawdziliśmy jakość danych na podstawie mapowania z poprzedniego kroku.</p>
+
+      <div class="val-summary">
+        <div class="val-card ok"><div class="vc-val num" id="validCount">0</div><div class="vc-lbl">wierszy poprawnych</div></div>
+        <div class="val-card warn"><div class="vc-val num" id="errorCount">0</div><div class="vc-lbl">wierszy z błędem</div></div>
+      </div>
+
+      <div class="err-list" id="errList"></div>
+      <div class="banner warn" id="errBanner" style="display:none">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9L2.7 17a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+        <span id="errBannerText"></span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-soft" id="backToMapping">Wstecz</button>
+        <button class="btn btn-grad" id="toAnalysis">Uruchom analizę</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 4 — ANALYZING ===================== -->
+  <section class="view" id="view-analyzing">
+    <div class="panel">
+      <div class="analyzing">
+        <div class="an-ring">
+          <svg viewBox="0 0 88 88"><circle cx="44" cy="44" r="38" fill="none" stroke="var(--surface-3)" stroke-width="7"/>
+            <circle cx="44" cy="44" r="38" fill="none" stroke="url(#cwg)" stroke-width="7" stroke-linecap="round"
+              stroke-dasharray="238" stroke-dashoffset="170"/></svg>
+        </div>
+        <div class="an-msg" id="anMsg">Grupowanie wierszy po dostawcach…</div>
+        <div class="an-sub">To może potrwać do minuty przy większych plikach</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 5 — DONE ===================== -->
+  <section class="view" id="view-done">
+    <div class="panel">
+      <div class="done-hero">
+        <div class="done-ico"><svg fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+        <h1>Analiza gotowa</h1>
+        <p class="sub" style="margin:8px auto 0">Znaleźliśmy odchylenia warte sprawdzenia. Pełna lista znajduje się w widoku Findings.</p>
+      </div>
+      <div class="done-kpis" id="doneKpis"></div>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn btn-grad" id="goToFindings">Otwórz Findings</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var STEPS = ['upload','mapping','validation','analyzing','done'];
+  var STEP_LABELS = ['Upload','Mapowanie','Walidacja','Analiza','Gotowe'];
+  var current = 0;
+
+  var stepperEl = document.getElementById('stepper');
+  function renderStepper(){
+    stepperEl.innerHTML = '';
+    STEPS.forEach(function(s, i){
+      var item = document.createElement('div');
+      item.className = 'step-item' + (i < current ? ' done' : '') + (i === current ? ' current' : '');
+      var dotContent = i < current
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>'
+        : (i+1);
+      item.innerHTML = '<div class="step-dot">'+dotContent+'</div><div class="step-label">'+STEP_LABELS[i]+'</div>';
+      stepperEl.appendChild(item);
+      if(i < STEPS.length - 1){
+        var line = document.createElement('div');
+        line.className = 'step-line';
+        stepperEl.appendChild(line);
+      }
+    });
+  }
+
+  function goTo(name){
+    current = STEPS.indexOf(name);
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    document.getElementById('view-'+name).classList.add('active');
+    renderStepper();
+    window.scrollTo({top:0, behavior:'smooth'});
+    if(name === 'analyzing') runAnalysis();
+  }
+  renderStepper();
+
+  /* =========================================================
+     REQUIRED SYSTEM FIELDS (mirrors system_fields table)
+  ========================================================= */
+  var SYSTEM_FIELDS = [
+    {key:'supplier_name', label:'Nazwa dostawcy', required:true,  type:'text',
+      synonyms:['supplier','vendor','dostawca','vendor name','supplier name']},
+    {key:'invoice_date',  label:'Data faktury',   required:true,  type:'date',
+      synonyms:['date','invoice date','data','data faktury']},
+    {key:'invoice_number',label:'Numer faktury',  required:false, type:'text',
+      synonyms:['invoice','invoice no','invoice number','nr faktury']},
+    {key:'unit_price',    label:'Cena jednostkowa', required:true, type:'number',
+      synonyms:['unit price','price','cena','cena jednostkowa']},
+    {key:'quantity',      label:'Ilość',           required:false, type:'number',
+      synonyms:['qty','quantity','ilość']},
+    {key:'amount',        label:'Kwota całkowita', required:true,  type:'number',
+      synonyms:['amount','total','kwota','suma','total amount']},
+    {key:'currency',      label:'Waluta',          required:false, type:'text', synonyms:['currency','waluta']},
+    {key:'category',      label:'Kategoria kosztu',required:false, type:'text', synonyms:['category','kategoria']},
+    {key:'contract_id',   label:'Nr kontraktu',    required:false, type:'text', synonyms:['contract','contract id','umowa']},
+    {key:'location',      label:'Lokalizacja',     required:false, type:'text', synonyms:['location','lokalizacja','cost center']}
+  ];
+
+  var reqColsEl = document.getElementById('reqCols');
+  SYSTEM_FIELDS.forEach(function(f){
+    var chip = document.createElement('span');
+    chip.className = 'req-chip' + (f.required ? ' req' : '');
+    chip.textContent = f.label + (f.required ? ' *' : '');
+    reqColsEl.appendChild(chip);
+  });
+
+  document.getElementById('downloadTemplate').addEventListener('click', function(e){
+    e.preventDefault();
+    var headers = SYSTEM_FIELDS.map(function(f){ return f.label; }).join(',');
+    var example = 'ABC Industrial,2026-08-01,INV-1001,4.93,100,493.00,EUR,Raw materials,CTR-001,Warsaw';
+    var csv = headers + '\n' + example;
+    var blob = new Blob([csv], {type:'text/csv'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'costwarden_template.csv';
+    a.click();
+  });
+
+  /* =========================================================
+     STEP 1 — UPLOAD + PARSE
+  ========================================================= */
+  var parsedHeaders = [], parsedRows = [], currentFile = null;
+
+  var dropzone = document.getElementById('dropzone');
+  var fileInput = document.getElementById('fileInput');
+  dropzone.addEventListener('click', function(){ fileInput.click(); });
+  dropzone.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' ') fileInput.click(); });
+  ['dragenter','dragover'].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.classList.remove('drag'); });
+  });
+  dropzone.addEventListener('drop', function(e){
+    if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', function(){
+    if(fileInput.files.length) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file){
+    currentFile = file;
+    var isXlsx = /\.(xlsx|xls)$/i.test(file.name);
+    if(isXlsx){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var wb = XLSX.read(e.target.result, {type:'array'});
+        var sheet = wb.Sheets[wb.SheetNames[0]];
+        var json = XLSX.utils.sheet_to_json(sheet, {defval:''});
+        onParsed(json);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      Papa.parse(file, {
+        header:true, skipEmptyLines:true,
+        complete: function(res){ onParsed(res.data); }
+      });
+    }
+  }
+
+  function onParsed(rows){
+    parsedRows = rows;
+    parsedHeaders = rows.length ? Object.keys(rows[0]) : [];
+    document.getElementById('fName').textContent = currentFile.name;
+    document.getElementById('fMeta').textContent =
+      (Math.round(currentFile.size/1024)) + ' KB · ' + parsedRows.length.toLocaleString('pl-PL') + ' wierszy';
+    document.getElementById('fileCardWrap').style.display = 'block';
+    renderPreview();
+    document.getElementById('toMapping').disabled = parsedRows.length === 0;
+  }
+
+  document.getElementById('fRemove').addEventListener('click', function(){
+    currentFile = null; parsedRows = []; parsedHeaders = [];
+    fileInput.value = '';
+    document.getElementById('fileCardWrap').style.display = 'none';
+    document.getElementById('toMapping').disabled = true;
+  });
+
+  function renderPreview(){
+    var table = document.getElementById('previewTable');
+    var thead = '<thead><tr>' + parsedHeaders.map(function(h){ return '<th>'+escapeHtml(h)+'</th>'; }).join('') + '</tr></thead>';
+    var body = parsedRows.slice(0,8).map(function(r){
+      return '<tr>' + parsedHeaders.map(function(h){ return '<td>'+escapeHtml(String(r[h] ?? ''))+'</td>'; }).join('') + '</tr>';
+    }).join('');
+    table.innerHTML = thead + '<tbody>' + body + '</tbody>';
+    document.getElementById('previewNote').textContent =
+      'Podgląd pierwszych 8 z ' + parsedRows.length.toLocaleString('pl-PL') + ' wierszy';
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  document.getElementById('toMapping').addEventListener('click', function(){
+    buildMappingUI();
+    goTo('mapping');
+  });
+
+  /* =========================================================
+     STEP 2 — MAPPING
+  ========================================================= */
+  var mapping = {}; // sourceColumn -> targetKey ('' = skip)
+
+  function suggestTarget(header){
+    var norm = header.toLowerCase().trim();
+    for(var i=0;i<SYSTEM_FIELDS.length;i++){
+      var f = SYSTEM_FIELDS[i];
+      if(f.synonyms.indexOf(norm) !== -1) return f.key;
+    }
+    for(var j=0;j<SYSTEM_FIELDS.length;j++){
+      var f2 = SYSTEM_FIELDS[j];
+      for(var k=0;k<f2.synonyms.length;k++){
+        if(norm.indexOf(f2.synonyms[k]) !== -1 || f2.synonyms[k].indexOf(norm) !== -1) return f2.key;
+      }
+    }
+    return '';
+  }
+
+  function buildMappingUI(){
+    mapping = {};
+    var wrap = document.getElementById('mapRows');
+    wrap.innerHTML = '';
+    parsedHeaders.forEach(function(h){
+      var suggested = suggestTarget(h);
+      mapping[h] = suggested;
+      var sampleVals = parsedRows.slice(0,3).map(function(r){ return r[h]; }).filter(Boolean).join(', ');
+
+      var row = document.createElement('div');
+      row.className = 'map-row';
+      var options = '<option value="">— Pomiń tę kolumnę —</option>' +
+        SYSTEM_FIELDS.map(function(f){
+          return '<option value="'+f.key+'"'+(f.key===suggested?' selected':'')+'>'+f.label+(f.required?' *':'')+'</option>';
+        }).join('');
+      row.innerHTML =
+        '<div class="map-src"><div class="ms-name">'+escapeHtml(h)+'</div><div class="ms-sample">'+escapeHtml(sampleVals || '—')+'</div></div>'+
+        '<div class="map-arrow"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6"/></svg></div>'+
+        '<select class="map-select" data-source="'+encodeURIComponent(h)+'">'+options+'</select>';
+      wrap.appendChild(row);
+    });
+
+    wrap.querySelectorAll('select.map-select').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        var src = decodeURIComponent(sel.dataset.source);
+        mapping[src] = sel.value;
+        updateMapProgress();
+      });
+    });
+    updateMapProgress();
+  }
+
+  function updateMapProgress(){
+    var requiredFields = SYSTEM_FIELDS.filter(function(f){ return f.required; });
+    var mappedTargets = Object.values(mapping).filter(Boolean);
+    var mappedRequired = requiredFields.filter(function(f){ return mappedTargets.indexOf(f.key) !== -1; });
+    document.getElementById('mapProgressLabel').textContent =
+      mappedRequired.length + ' / ' + requiredFields.length + ' pól wymaganych zmapowanych';
+    document.getElementById('mapProgressBar').style.width =
+      Math.round((mappedRequired.length/requiredFields.length)*100) + '%';
+    document.getElementById('toValidation').disabled = mappedRequired.length < requiredFields.length;
+  }
+
+  document.getElementById('backToUpload').addEventListener('click', function(){ goTo('upload'); });
+  document.getElementById('toValidation').addEventListener('click', function(){
+    runValidation();
+    goTo('validation');
+  });
+
+  /* =========================================================
+     STEP 3 — VALIDATION
+  ========================================================= */
+  var validRows = [], invalidRows = [];
+
+  function runValidation(){
+    validRows = []; invalidRows = [];
+    var errorTally = {}; // message -> count
+
+    parsedRows.forEach(function(row, idx){
+      var errors = [];
+      var mappedRow = {};
+      Object.keys(mapping).forEach(function(src){
+        if(mapping[src]) mappedRow[mapping[src]] = row[src];
+      });
+
+      SYSTEM_FIELDS.forEach(function(f){
+        var val = mappedRow[f.key];
+        if(f.required && (val === undefined || val === null || String(val).trim() === '')){
+          var msg = 'Brak wartości: ' + f.label;
+          errors.push(msg); errorTally[msg] = (errorTally[msg]||0)+1;
+          return;
+        }
+        if(val !== undefined && val !== '' && f.type === 'number' && isNaN(parseFloat(String(val).replace(',','.')))){
+          var msg2 = 'Nieprawidłowa liczba: ' + f.label;
+          errors.push(msg2); errorTally[msg2] = (errorTally[msg2]||0)+1;
+        }
+        if(val !== undefined && val !== '' && f.type === 'date' && isNaN(Date.parse(val))){
+          var msg3 = 'Nieprawidłowa data: ' + f.label;
+          errors.push(msg3); errorTally[msg3] = (errorTally[msg3]||0)+1;
+        }
+        if(f.key === 'amount' && val !== undefined && val !== '' && parseFloat(String(val).replace(',','.')) < 0){
+          var msg4 = 'Ujemna kwota';
+          errors.push(msg4); errorTally[msg4] = (errorTally[msg4]||0)+1;
+        }
+      });
+
+      if(errors.length){ invalidRows.push({row: idx+1, errors: errors}); }
+      else { validRows.push(mappedRow); }
+    });
+
+    document.getElementById('validCount').textContent = validRows.length.toLocaleString('pl-PL');
+    document.getElementById('errorCount').textContent = invalidRows.length.toLocaleString('pl-PL');
+
+    var errList = document.getElementById('errList');
+    errList.innerHTML = '';
+    var entries = Object.entries(errorTally).sort(function(a,b){ return b[1]-a[1]; });
+    if(entries.length === 0){
+      errList.innerHTML = '<div class="empty-note" style="text-align:center;color:var(--muted);font-size:13px;padding:10px 0">Brak błędów — wszystkie wiersze przeszły walidację.</div>';
+    } else {
+      entries.forEach(function(e){
+        var item = document.createElement('div');
+        item.className = 'err-item';
+        item.innerHTML =
+          '<div class="ei-ico"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9L2.7 17a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div>'+
+          '<div><div class="ei-t">'+escapeHtml(e[0])+'</div><div class="ei-d">Dotyczy '+e[1]+' wierszy</div></div>'+
+          '<div class="ei-count">'+e[1]+'</div>';
+        errList.appendChild(item);
+      });
+    }
+
+    var errRate = parsedRows.length ? invalidRows.length / parsedRows.length : 0;
+    var banner = document.getElementById('errBanner');
+    if(errRate > 0.10){
+      banner.style.display = 'flex';
+      document.getElementById('errBannerText').textContent =
+        Math.round(errRate*100) + '% wierszy zawiera błędy i zostanie pominięte w analizie. Rozważ poprawienie pliku źródłowego przed kontynuacją.';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  document.getElementById('backToMapping').addEventListener('click', function(){ goTo('mapping'); });
+  document.getElementById('toAnalysis').addEventListener('click', function(){ goTo('analyzing'); });
+
+  /* =========================================================
+     STEP 4 — ANALYSIS (staged, mocked timing)
+  ========================================================= */
+  function runAnalysis(){
+    var msgs = [
+      'Grupowanie wierszy po dostawcach…',
+      'Porównywanie cen z historią zakupów…',
+      'Sprawdzanie zgodności z kontraktami…',
+      'Wyszukiwanie zduplikowanych płatności…',
+      'Generowanie opisów i rekomendacji…'
+    ];
+    var el = document.getElementById('anMsg');
+    var i = 0;
+    el.textContent = msgs[0];
+    var interval = setInterval(function(){
+      i++;
+      if(i >= msgs.length){ clearInterval(interval); renderDone(); goTo('done'); return; }
+      el.style.opacity = 0;
+      setTimeout(function(){ el.textContent = msgs[i]; el.style.opacity = 1; }, 220);
+    }, 750);
+  }
+
+  /* =========================================================
+     STEP 5 — DONE (mocked findings summary from validRows count)
+  ========================================================= */
+  function renderDone(){
+    var suppliers = {};
+    validRows.forEach(function(r){
+      var s = r.supplier_name || 'Nieznany dostawca';
+      suppliers[s] = (suppliers[s]||0) + 1;
+    });
+    var supplierCount = Object.keys(suppliers).length;
+    // demo heuristic just to make the summary feel grounded in the uploaded file
+    var estFindings = Math.max(1, Math.min(12, Math.round(supplierCount * 0.4)));
+
+    var kpis = [
+      {val: validRows.length.toLocaleString('pl-PL'), lbl:'wierszy przeanalizowanych'},
+      {val: supplierCount.toLocaleString('pl-PL'), lbl:'dostawców rozpoznanych'},
+      {val: estFindings, lbl:'findings do przeglądu'}
+    ];
+    var wrap = document.getElementById('doneKpis');
+    wrap.innerHTML = kpis.map(function(k){
+      return '<div class="done-kpi"><div class="dk-val num">'+k.val+'</div><div class="dk-lbl">'+k.lbl+'</div></div>';
+    }).join('');
+  }
+
+  document.getElementById('goToFindings').addEventListener('click', function(){
+    window.location.href = 'dashboard.html';
+  });
+})();
+</script>
+</body>
+</html>

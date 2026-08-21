@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="violet">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CostWarden — Znajdź pieniądze, które tracisz na dostawcach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0910; --surface:#14121D; --surface-2:#1B1927;
+    --ink:#F3F1FA; --ink-2:#CFCBDE; --muted:#9A96AE;
+    --line:rgba(255,255,255,.09);
+    --violet:#8B6DFF; --teal:#2FD9C4; --leak:#FF6E5A;
+    --leak-soft:rgba(255,110,90,.14); --teal-soft:rgba(47,217,196,.14); --violet-soft:rgba(139,109,255,.14);
+    --grad:linear-gradient(115deg,#8B6DFF 0%,#2FD9C4 100%);
+    --ff-display:'Plus Jakarta Sans',system-ui,sans-serif;
+    --ff-body:'Inter',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--ff-body);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:6px}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;max-width:1080px;margin:0 auto;padding:26px 24px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .mark{width:30px;height:30px}
+  .brand .wm{font-family:var(--ff-display);font-weight:700;font-size:16.5px}
+  .nav-actions{display:flex;gap:10px}
+
+  .btn{font-family:var(--ff-display);font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:7px;
+    border:none;border-radius:10px;padding:11px 20px;transition:transform .15s,filter .2s,border-color .15s;white-space:nowrap}
+  .btn-grad{background:var(--grad);color:#0A0910}
+  .btn-grad:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .btn-ghost{background:transparent;color:var(--ink-2);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--teal);color:var(--ink)}
+  .btn-lg{padding:14px 26px;font-size:15px}
+
+  .hero{max-width:780px;margin:60px auto 0;padding:0 24px;text-align:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--violet-soft);border:1px solid var(--line);
+    color:var(--ink-2);font-family:var(--ff-display);font-weight:600;font-size:12.5px;padding:6px 14px;border-radius:100px}
+  .eyebrow .d{width:6px;height:6px;border-radius:50%;background:var(--teal)}
+  .hero h1{font-family:var(--ff-display);font-weight:800;font-size:44px;letter-spacing:-.03em;line-height:1.12;margin:22px 0 16px}
+  .hero h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{font-size:16.5px;color:var(--ink-2);max-width:56ch;margin:0 auto}
+  .hero-cta{display:flex;justify-content:center;gap:12px;margin-top:32px;flex-wrap:wrap}
+  @media(max-width:640px){.hero h1{font-size:32px}}
+
+  .stats{display:flex;justify-content:center;gap:48px;margin:64px auto 0;padding:0 24px;flex-wrap:wrap}
+  .stat{text-align:center}
+  .stat .sv{font-family:var(--ff-display);font-weight:800;font-size:28px}
+  .stat .sl{font-size:12.5px;color:var(--muted);margin-top:4px}
+
+  .steps{max-width:980px;margin:80px auto 0;padding:0 24px}
+  .steps h2{font-family:var(--ff-display);font-weight:700;font-size:22px;text-align:center;margin-bottom:36px;letter-spacing:-.01em}
+  .step-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .step-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .step-card .sc-n{font-family:var(--ff-display);font-weight:800;font-size:12px;color:var(--teal);margin-bottom:10px}
+  .step-card .sc-t{font-family:var(--ff-display);font-weight:700;font-size:14.5px;margin-bottom:6px}
+  .step-card .sc-d{font-size:13px;color:var(--muted);line-height:1.5}
+  @media(max-width:900px){.step-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.step-grid{grid-template-columns:1fr}}
+
+  .finalcta{max-width:640px;margin:90px auto 90px;padding:0 24px;text-align:center}
+  .finalcta .panel{background:linear-gradient(120deg,var(--violet-soft),var(--teal-soft));border:1px solid var(--line);
+    border-radius:20px;padding:40px 30px}
+  .finalcta h3{font-family:var(--ff-display);font-weight:700;font-size:20px;margin-bottom:10px}
+  .finalcta p{font-size:14px;color:var(--ink-2);margin-bottom:24px}
+
+  .foot{border-top:1px solid var(--line);padding:24px;text-align:center;font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="cw-mark" viewBox="0 0 44 44">
+    <defs><linearGradient id="cwg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B6DFF"/><stop offset="1" stop-color="#2FD9C4"/></linearGradient></defs>
+    <rect x="1" y="1" width="42" height="42" rx="13" fill="url(#cwg)"/>
+    <circle cx="19.5" cy="19.5" r="8.5" fill="none" stroke="#fff" stroke-width="3"/>
+    <path d="M26 26l6 6" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M16 21l2.5-3 2.5 2 3-4" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<nav class="nav">
+  <a class="brand" href="index.html"><svg class="mark"><use href="#cw-mark"/></svg><span class="wm">CostWarden</span></a>
+  <div class="nav-actions">
+    <a href="signup.html" class="btn btn-ghost">Zaloguj się</a>
+    <a href="signup.html" class="btn btn-grad">Rozpocznij za darmo</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <span class="eyebrow"><span class="d"></span>Dla firm z 20+ dostawcami</span>
+  <h1>Twoi dostawcy podnoszą ceny.<br>My to <span class="g">łapiemy</span>, zanim zapłacisz za dużo.</h1>
+  <p>Wgraj faktury, a CostWarden znajdzie zawyżone ceny, duplikaty i niezgodności z kontraktami — z konkretną kwotą, dowodem i gotową rekomendacją działania.</p>
+  <div class="hero-cta">
+    <a href="signup.html" class="btn btn-grad btn-lg">Załóż konto</a>
+    <a href="dashboard.html" class="btn btn-ghost btn-lg">Zobacz przykładowy dashboard</a>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="sv num">€142K+</div><div class="sl">odzyskane dla klientów pilotażowych</div></div>
+  <div class="stat"><div class="sv num">&lt;3 min</div><div class="sl">od uploadu do pierwszych findings</div></div>
+  <div class="stat"><div class="sv num">4</div><div class="sl">typy wykrywanych odchyleń</div></div>
+</div>
+
+<section class="steps">
+  <h2>Jak to działa</h2>
+  <div class="step-grid">
+    <div class="step-card"><div class="sc-n">01</div><div class="sc-t">Wgraj dane</div><div class="sc-d">CSV lub XLSX z fakturami — bez czyszczenia, bez formatowania.</div></div>
+    <div class="step-card"><div class="sc-n">02</div><div class="sc-t">Dopasuj kolumny</div><div class="sc-d">System proponuje mapowanie automatycznie, Ty tylko potwierdzasz.</div></div>
+    <div class="step-card"><div class="sc-n">03</div><div class="sc-t">Dostajesz findings</div><div class="sc-d">Kwota, pewność, dowód i rekomendowane działanie dla każdego odchylenia.</div></div>
+    <div class="step-card"><div class="sc-n">04</div><div class="sc-t">Odzyskujesz pieniądze</div><div class="sc-d">Śledzisz status każdego znaleziska aż do odzyskania kwoty.</div></div>
+  </div>
+</section>
+
+<section class="finalcta">
+  <div class="panel">
+    <h3>Gotowy sprawdzić, ile tracisz?</h3>
+    <p>Załóż konto i wgraj pierwszy plik — zobaczysz wynik w kilka minut.</p>
+    <a href="signup.html" class="btn btn-grad btn-lg">Rozpocznij za darmo</a>
+  </div>
+</section>
+
+<footer class="foot">CostWarden.co · prototyp produktu</footer>
+
+</body>
+</html>
