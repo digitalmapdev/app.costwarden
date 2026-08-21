@@ -182,7 +182,12 @@
       );
 
 
-      window.location.href = "create-org.html";
+      if(data.session){
+        window.location.href="create-org.html";
+      }
+      else{
+        alert("Sprawdź email i aktywuj konto.");
+      }
 
 
     } catch(err){
