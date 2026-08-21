@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="violet">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>CostWarden — Logowanie</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+
+<style>
+
+:root{
+  --bg:#0A0910;
+  --surface:#14121D;
+  --surface-2:#1B1927;
+  --ink:#F3F1FA;
+  --muted:#9A96AE;
+  --line:rgba(255,255,255,.09);
+  --teal:#2FD9C4;
+  --leak:#FF6E5A;
+  --grad:linear-gradient(115deg,#8B6DFF 0%,#2FD9C4 100%);
+  --ff-display:'Plus Jakarta Sans',system-ui,sans-serif;
+  --ff-body:'Inter',system-ui,sans-serif;
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box
+}
+
+body{
+background:var(--bg);
+color:var(--ink);
+font-family:var(--ff-body);
+min-height:100vh;
+display:flex;
+flex-direction:column;
+}
+
+a{
+color:inherit;
+text-decoration:none;
+}
+
+.nav{
+padding:26px 24px;
+}
+
+.brand{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.mark{
+width:30px;
+height:30px;
+}
+
+.wm{
+font-family:var(--ff-display);
+font-weight:700;
+}
+
+.wrap{
+flex:1;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:20px 24px;
+}
+
+.card{
+width:100%;
+max-width:400px;
+background:var(--surface);
+border:1px solid var(--line);
+border-radius:20px;
+padding:34px;
+}
+
+h1{
+font-family:var(--ff-display);
+font-size:21px;
+margin-bottom:8px;
+}
+
+.sub{
+font-size:13.5px;
+color:var(--muted);
+margin-bottom:26px;
+}
+
+.field{
+margin-bottom:16px;
+}
+
+label{
+display:block;
+font-size:12px;
+color:var(--muted);
+margin-bottom:7px;
+}
+
+input{
+width:100%;
+background:var(--surface-2);
+border:1px solid var(--line);
+border-radius:10px;
+padding:12px 14px;
+color:var(--ink);
+font-size:14px;
+}
+
+input:focus{
+outline:none;
+border-color:var(--teal);
+}
+
+.err{
+font-size:12px;
+color:var(--leak);
+margin-top:6px;
+display:none;
+}
+
+.invalid input{
+border-color:var(--leak);
+}
+
+.invalid .err{
+display:block;
+}
+
+.btn{
+width:100%;
+padding:13px;
+border:none;
+border-radius:10px;
+font-family:var(--ff-display);
+font-weight:700;
+cursor:pointer;
+}
+
+.btn-grad{
+background:var(--grad);
+color:#0A0910;
+}
+
+.foot-link{
+text-align:center;
+margin-top:20px;
+font-size:13px;
+color:var(--muted);
+}
+
+.foot-link a{
+color:var(--teal);
+font-weight:600;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<nav class="nav">
+
+<a class="brand" href="index.html">
+
+<svg class="mark">
+<rect width="30" height="30" rx="10" fill="#8B6DFF"/>
+</svg>
+
+<span class="wm">
+CostWarden
+</span>
+
+</a>
+
+</nav>
+
+<div class="wrap">
+
+<div class="card">
+
+<h1>Zaloguj się</h1>
+
+<div class="sub">
+Wróć do swojej przestrzeni CostWarden.
+</div>
+
+<form id="loginForm">
+
+<div class="field" id="fieldEmail">
+
+<label>Email</label>
+
+<input 
+id="email"
+type="email"
+placeholder="jan@firma.pl"
+>
+
+<div class="err">
+Podaj poprawny email.
+</div>
+
+</div>
+
+<div class="field" id="fieldPassword">
+
+<label>Hasło</label>
+
+<input
+id="password"
+type="password"
+placeholder="Twoje hasło"
+>
+
+<div class="err">
+Podaj hasło.
+</div>
+
+</div>
+
+<button class="btn btn-grad" type="submit">
+Zaloguj się
+</button>
+
+</form>
+
+<div class="foot-link">
+
+Nie masz konta?
+
+<a href="signup.html">
+Załóż konto
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="assets/js/supabase.js"></script>
+
+
+<script>
+
+console.log("LOGIN SCRIPT STARTED");
+
+
+const form = document.getElementById("loginForm");
+
+
+form.addEventListener("submit", async function(e){
+
+e.preventDefault();
+
+
+const email =
+document.getElementById("email").value.trim();
+
+
+const password =
+document.getElementById("password").value;
+
+
+
+let ok=true;
+
+
+
+if(!email.includes("@")){
+
+document
+.getElementById("fieldEmail")
+.classList.add("invalid");
+
+ok=false;
+
+}
+
+
+if(password.length < 1){
+
+document
+.getElementById("fieldPassword")
+.classList.add("invalid");
+
+ok=false;
+
+}
+
+if(!ok){
+return;
+}
+
+const {
+data,
+error
+
+}=await supabaseClient.auth.signInWithPassword({
+
+email,
+password
+
+});
+
+if(error){
+
+alert(error.message);
+
+return;
+
+}
+
+console.log(
+"Logged in:",
+data
+);
+
+window.location.href="create-org.html";
+
+});
+
+</script>
+
+</body>
+</html>
