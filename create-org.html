@@ -114,7 +114,7 @@
       </div>
       <button type="submit" class="btn btn-grad">Utwórz organizację i przejdź dalej</button>
     </form>
-    <div class="skip">Robisz to dla klienta? <a href="upload.html">Pomiń i przejdź do uploadu</a></div>
+    <div class="skip"></div>
   </div>
 </div>
 
@@ -123,127 +123,62 @@
 
 <script>
 
-(function(){
+console.log("CREATE ORG SCRIPT STARTED");
 
-  const form = document.getElementById('orgForm');
+const form = document.getElementById("orgForm");
 
+form.addEventListener("submit", async function(e){
+  e.preventDefault();
 
-  form.addEventListener('submit', async function(e){
+  const orgName = document.getElementById("orgName").value.trim();
+  const industry = document.getElementById("industry").value;
+  const locations = Number(document.getElementById("locations").value);
 
-    e.preventDefault();
+  if(!orgName || !industry){
+    alert("Uzupełnij wymagane pola");
+    return;
+  }
 
+  try{
 
-    const orgName = document.getElementById('orgName').value.trim();
-    const industry = document.getElementById('industry').value;
-    const locations = Number(document.getElementById('locations').value);
-    const spend = document.getElementById('spend').value;
+    // 1. pobieramy aktualnego usera
+    const { data:userData, error:userError } = await supabaseClient.auth.getUser();
 
-
-    let ok = true;
-
-
-    validate(
-      "fieldOrgName",
-      orgName.length > 1
-    );
-
-
-    validate(
-      "fieldIndustry",
-      industry !== ""
-    );
-
-
-    function validate(id, condition){
-
-      const field = document.getElementById(id);
-
-      field.classList.toggle(
-        "invalid",
-        !condition
-      );
-
-      if(!condition){
-        ok = false;
-      }
-    }
-    if(!ok){
+    if(userError || !userData.user){
+      alert("Brak zalogowanego użytkownika");
       return;
     }
-    try {
-      const {
-        data:{
-          user
-        }
-      } = await supabaseClient.auth.getUser();
 
-      if(!user){
+    const userId = userData.user.id;
 
-        alert("Brak zalogowanego użytkownika");
+    // 2. tworzymy organizację (bez .select().single() — testujemy sam insert)
+    const { error:orgError } = await supabaseClient
+      .from("organizations")
+      .insert({
+        name: orgName,
+        industry: industry,
+        locations: locations
+      });
 
-        return;
-
-      }
-
-      // 1. Tworzymy organizację
-
-      const {
-        data: organization,
-        error: orgError
-
-      } = await supabaseClient
-
-        .from("organizations")
-        .insert({
-
-          name: orgName,
-          industry: industry,
-
-        })
-        .select()
-        .single();
-
-      if(orgError){
-        throw orgError;
-
-      }
-
-      // 2. Dodajemy usera jako ownera
-
-      const {
-
-        error: memberError
-
-      } = await supabaseClient
-
-        .from("org_members")
-        .insert({
-          org_id: organization.id,
-          user_id: user.id,
-          role: "owner"
-        });
-      
-      if(memberError){
-        throw memberError;
-      }
-
-      console.log(
-        "Organization created:",
-        organization
-      );
-
-      window.location.href="upload.html";
-
-    } catch(error){
-
-      console.error(error);
-
-      alert(
-        error.message
-      );
+    if(orgError){
+      console.error(orgError);
+      alert(orgError.message);
+      return;
     }
-  });
-})();
+
+    console.log("Organization created (bez pobrania ID — kolejny krok)");
+
+    // 4. dalej
+    window.location.href = "upload.html";
+
+  }
+  catch(err){
+    console.error(err);
+    alert("Wystąpił błąd podczas tworzenia organizacji");
+  }
+
+});
+
 </script>
 </body>
 </html>
