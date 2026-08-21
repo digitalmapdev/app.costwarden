@@ -140,15 +140,15 @@ form.addEventListener("submit", async function(e){
 
   try{
 
-    // 1. pobieramy aktualnego usera
-    const { data:userData, error:userError } = await supabaseClient.auth.getUser();
+    // 1. pobieramy aktualną sesję
+    const { data:sessionData, error:sessionError } = await supabaseClient.auth.getSession();
 
-    if(userError || !userData.user){
+    if(sessionError || !sessionData.session){
       alert("Brak zalogowanego użytkownika");
       return;
     }
 
-    const userId = userData.user.id;
+    const userId = sessionData.session.user.id;
 
     // 2. tworzymy organizację i pobieramy jej ID
     const { data:orgData, error:orgError } = await supabaseClient
