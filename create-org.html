@@ -150,12 +150,27 @@ form.addEventListener("submit", async function(e){
 
     const userId = sessionData.session.user.id;
 
-    // TEST DIAGNOSTYCZNY — sprawdzamy co realnie jest w sesji tuż przed insertem
+    // TEST DIAGNOSTYCZNY nr 1
     const {
       data:{session}
     } = await supabaseClient.auth.getSession();
     console.log("SESSION BEFORE INSERT:", session);
     console.log("USER ID BEFORE INSERT:", session?.user?.id);
+
+    // TEST DIAGNOSTYCZNY nr 2
+    const { data:sessionCheck } = await supabaseClient.auth.getSession();
+    console.log(
+      "SESSION CHECK:",
+      sessionCheck.session
+    );
+    console.log(
+      "TOKEN:",
+      sessionCheck.session?.access_token
+    );
+    console.log(
+      "ROLE:",
+      sessionCheck.session?.user?.role
+    );
 
     // 2. tworzymy organizację i pobieramy jej ID
     const { data:orgData, error:orgError } = await supabaseClient
