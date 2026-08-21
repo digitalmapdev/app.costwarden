@@ -332,7 +332,24 @@ console.log(
 data
 );
 
-window.location.href="create-org.html";
+const { data: membership, error: membershipError } =
+  await supabaseClient
+    .from("org_members")
+    .select("id")
+    .eq("user_id", data.user.id)
+    .limit(1);
+
+if(membershipError){
+  console.error(membershipError);
+  alert(membershipError.message);
+  return;
+}
+
+if(membership && membership.length > 0){
+  window.location.href="dashboard.html";
+}else{
+  window.location.href="create-org.html";
+}
 
 });
 
