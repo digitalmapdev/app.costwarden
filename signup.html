@@ -108,34 +108,110 @@
   </div>
 </div>
 
-<script>
-(function(){
-  var form = document.getElementById('signupForm');
-  form.addEventListener('submit', function(e){
-    e.preventDefault();
-    var name = document.getElementById('fullName');
-    var email = document.getElementById('email');
-    var pass = document.getElementById('password');
-    var ok = true;
-
-    toggle('fieldName', name.value.trim().length > 1);
-    toggle('fieldEmail', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim()));
-    toggle('fieldPassword', pass.value.length >= 8 && /\d/.test(pass.value));
-
-    function toggle(id, valid){
-      document.getElementById(id).classList.toggle('invalid', !valid);
-      if(!valid) ok = false;
-    }
-    if(ok){ window.location.href = 'create-org.html'; }
-  });
-  document.getElementById('ssoBtn').addEventListener('click', function(){
-    window.location.href = 'create-org.html';
-  });
-})();
-</script>
-  
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase.js"></script>
-  
+
+<script>
+(function(){
+
+  const form = document.getElementById('signupForm');
+
+  form.addEventListener('submit', async function(e){
+
+    e.preventDefault();
+
+    const name = document.getElementById('fullName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    let ok = true;
+
+    validate("fieldName", name.length > 1);
+    validate("fieldEmail", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    validate("fieldPassword", password.length >= 8 && /\d/.test(password));
+
+
+    function validate(id, condition){
+
+      const field = document.getElementById(id);
+
+      field.classList.toggle(
+        "invalid",
+        !condition
+      );
+
+      if(!condition){
+        ok = false;
+      }
+    }
+
+
+    if(!ok){
+      return;
+    }
+
+
+    try {
+
+      const { data, error } = await supabaseClient.auth.signUp({
+
+        email,
+        password,
+
+        options:{
+          data:{
+            full_name:name
+          }
+        }
+
+      });
+
+
+      if(error){
+
+        alert(error.message);
+        return;
+
+      }
+
+
+      console.log(
+        "Supabase user created:",
+        data
+      );
+
+
+      window.location.href = "create-org.html";
+
+
+    } catch(err){
+
+      console.error(err);
+
+      alert(
+        "Wystąpił błąd podczas tworzenia konta."
+      );
+
+    }
+
+
+  });
+
+
+  document
+  .getElementById('ssoBtn')
+  .addEventListener('click', function(){
+
+    alert(
+      "Google Workspace będzie dodane później."
+    );
+
+  });
+
+
+})();
+</script>
+
+
 </body>
 </html>
