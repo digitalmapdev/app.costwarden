@@ -102,15 +102,9 @@
         </select>
         <div class="err">Wybierz branżę.</div>
       </div>
-      <div class="row2">
-        <div class="field">
-          <label for="locations">Liczba lokalizacji</label>
-          <input type="number" id="locations" min="1" value="1">
-        </div>
-        <div class="field">
-          <label for="spend">Roczne wydatki (EUR)</label>
-          <input type="text" id="spend" placeholder="np. 500 000">
-        </div>
+      <div class="field">
+        <label for="spend">Roczne wydatki (EUR)</label>
+        <input type="text" id="spend" placeholder="np. 500 000">
       </div>
       <button type="submit" class="btn btn-grad">Utwórz organizację i przejdź dalej</button>
     </form>
@@ -132,7 +126,6 @@ form.addEventListener("submit", async function(e){
 
   const orgName = document.getElementById("orgName").value.trim();
   const industry = document.getElementById("industry").value;
-  const locations = Number(document.getElementById("locations").value);
 
   if(!orgName || !industry){
     alert("Uzupełnij wymagane pola");
@@ -156,7 +149,7 @@ form.addEventListener("submit", async function(e){
       .from("organizations")
       .insert({
         name: orgName,
-        industry: industry,
+        industry: industry
       })
       .select("id")
       .single();
