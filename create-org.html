@@ -118,23 +118,132 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase.js"></script>
+
 <script>
+
 (function(){
-  var form = document.getElementById('orgForm');
-  form.addEventListener('submit', function(e){
+
+  const form = document.getElementById('orgForm');
+
+
+  form.addEventListener('submit', async function(e){
+
     e.preventDefault();
-    var name = document.getElementById('orgName');
-    var industry = document.getElementById('industry');
-    var ok = true;
 
-    toggle('fieldOrgName', name.value.trim().length > 1);
-    toggle('fieldIndustry', industry.value !== '');
 
-    function toggle(id, valid){
-      document.getElementById(id).classList.toggle('invalid', !valid);
-      if(!valid) ok = false;
+    const orgName = document.getElementById('orgName').value.trim();
+    const industry = document.getElementById('industry').value;
+    const locations = Number(document.getElementById('locations').value);
+    const spend = document.getElementById('spend').value;
+
+
+    let ok = true;
+
+
+    validate(
+      "fieldOrgName",
+      orgName.length > 1
+    );
+
+
+    validate(
+      "fieldIndustry",
+      industry !== ""
+    );
+
+
+    function validate(id, condition){
+
+      const field = document.getElementById(id);
+
+      field.classList.toggle(
+        "invalid",
+        !condition
+      );
+
+      if(!condition){
+        ok = false;
+      }
     }
-    if(ok){ window.location.href = 'upload.html'; }
+    if(!ok){
+      return;
+    }
+    try {
+      const {
+        data:{
+          user
+        }
+      } = await supabaseClient.auth.getUser();
+
+      if(!user){
+
+        alert("Brak zalogowanego użytkownika");
+
+        return;
+
+      }
+
+      // 1. Tworzymy organizację
+
+      const {
+        data: organization,
+        error: orgError
+
+      } = await supabaseClient
+
+        .from("organizations")
+        .insert({
+
+          name: orgName,
+          industry: industry,
+          locations: locations,
+          annual_spend: spend
+
+        })
+        .select()
+        .single();
+
+      if(orgError){
+        throw orgError;
+
+      }
+
+      // 2. Dodajemy usera jako ownera
+
+      const {
+
+        error: memberError
+
+      } = await supabaseClient
+
+        .from("org_members")
+        .insert({
+          org_id: organization.id,
+          user_id: user.id,
+          role: "owner"
+        });
+      
+      if(memberError){
+        throw memberError;
+      }
+
+      console.log(
+        "Organization created:",
+        organization
+      );
+
+      window.location.href="upload.html";
+
+    } catch(error){
+
+      console.error(error);
+
+      alert(
+        error.message
+      );
+    }
   });
 })();
 </script>
