@@ -151,13 +151,16 @@ form.addEventListener("submit", async function(e){
 
     const userId = userData.user.id;
 
-    // 2. tworzymy organizację (bez .select().single() — testujemy sam insert)
-    const { error:orgError } = await supabaseClient
+    // 2. tworzymy organizację i pobieramy jej ID
+    const { data:orgData, error:orgError } = await supabaseClient
       .from("organizations")
       .insert({
         name: orgName,
         industry: industry,
-      });
+        locations: locations
+      })
+      .select("id")
+      .single();
 
     if(orgError){
       console.error(orgError);
@@ -165,7 +168,25 @@ form.addEventListener("submit", async function(e){
       return;
     }
 
-    console.log("Organization created (bez pobrania ID — kolejny krok)");
+    const orgId = orgData.id;
+    console.log("Organization created:", orgId);
+
+    // 3. dodajemy usera jako owner
+    const { error:memberError } = await supabaseClient
+      .from("org_members")
+      .insert({
+        organization_id: orgId,
+        user_id: userId,
+        role: "owner"
+      });
+
+    if(memberError){
+      console.error(memberError);
+      alert(memberError.message);
+      return;
+    }
+
+    console.log("Owner added");
 
     // 4. dalej
     window.location.href = "upload.html";
