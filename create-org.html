@@ -126,6 +126,12 @@ form.addEventListener("submit", async function(e){
 
   const orgName = document.getElementById("orgName").value.trim();
   const industry = document.getElementById("industry").value;
+  const spend = Number(
+    document
+      .getElementById("spend")
+      .value
+      .replace(/\s/g,"")
+  ) || null;
 
   if(!orgName || !industry){
     alert("Uzupełnij wymagane pola");
@@ -149,7 +155,9 @@ form.addEventListener("submit", async function(e){
       .from("organizations")
       .insert({
         name: orgName,
-        industry: industry
+        industry: industry,
+        annual_spend: spend,
+        created_by: userId
       })
       .select("id")
       .single();
@@ -179,6 +187,23 @@ form.addEventListener("submit", async function(e){
     }
 
     console.log("Owner added");
+
+    const { error: settingsError } = await supabaseClient
+      .from("organization_settings")
+      .insert({
+        organization_id: orgId,
+        currency: "EUR",
+        timezone: "Europe/Warsaw",
+        fiscal_year_start: "January"
+      });
+
+    if(settingsError){
+      console.error(settingsError);
+      alert(settingsError.message);
+      return;
+    }
+
+    console.log("Settings created");
 
     // 4. dalej
     window.location.href = "dashboard.html";
